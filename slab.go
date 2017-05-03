@@ -10,6 +10,7 @@
 //  governing permissions and limitations under the License.
 
 // Package slab provides a 100% golang slab allocator for byte slices.
+// Modified by Filipe Varjão
 package slab
 
 import (
@@ -131,6 +132,15 @@ func NewArena(startChunkSize int, slabSize int, growthFactor float64,
 	return s
 }
 
+/*
+func (S *Arena) concDecRef(sc *slabClass, c *chunk) bool {
+	tmp = c
+	for {
+		if c.refs <= 0 {
+		}
+	}
+}*/
+
 func defaultMalloc(size int) []byte {
 	return make([]byte, size)
 }
@@ -151,6 +161,11 @@ func (s *Arena) Alloc(bufLen int) (buf []byte) {
 func (s *Arena) Owns(buf []byte) bool {
 	sc, c := s.bufChunk(buf)
 	return sc != nil && c != nil
+}
+
+func (s *Arena) Ref(buf []byte) {
+	sc, c := s.bufChunk(buf)
+	s.refNumber(sc, c)
 }
 
 // AddRef increase the ref count on a buf.  The input buf must be from
@@ -282,6 +297,9 @@ func (s *Arena) LocDecRef(loc Loc) {
 }
 
 // ---------------------------------------------------------------
+func (s *Arena) refNumber(sc *slabClass, c *chunk) {
+	fmt.Println(c.refs)
+}
 
 func (s *Arena) allocChunk(bufLen int) (*slabClass, *chunk) {
 	s.totAllocs++
