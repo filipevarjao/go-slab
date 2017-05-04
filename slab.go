@@ -163,9 +163,16 @@ func (s *Arena) Owns(buf []byte) bool {
 	return sc != nil && c != nil
 }
 
-func (s *Arena) Ref(buf []byte) {
-	sc, c := s.bufChunk(buf)
-	s.refNumber(sc, c)
+// Ref returns the current number of references of buf in Arena
+func (s *Arena) Ref(buf []byte) int32 {
+	if s.Owns(buf) {
+		_, c := s.bufChunk(buf)
+		if c != nil {
+			return c.refs
+		}
+	}
+
+	panic("buf not from this arena")
 }
 
 // AddRef increase the ref count on a buf.  The input buf must be from
@@ -297,9 +304,6 @@ func (s *Arena) LocDecRef(loc Loc) {
 }
 
 // ---------------------------------------------------------------
-func (s *Arena) refNumber(sc *slabClass, c *chunk) {
-	fmt.Println(c.refs)
-}
 
 func (s *Arena) allocChunk(bufLen int) (*slabClass, *chunk) {
 	s.totAllocs++
