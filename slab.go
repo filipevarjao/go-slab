@@ -10,7 +10,7 @@
 //  governing permissions and limitations under the License.
 
 // Package slab provides a 100% golang slab allocator for byte slices.
-// Modified by Filipe Varjão
+// Modified by Filipe Varjão <frgv@cin.ufpe.br>
 package slab
 
 import (
@@ -163,7 +163,7 @@ func (s *Arena) Owns(buf []byte) bool {
 	return sc != nil && c != nil
 }
 
-// Ref returns the current number of references of buf in Arena
+// Ref returns the current number of reference to the buf in Arena
 func (s *Arena) Ref(buf []byte) int32 {
 	if s.Owns(buf) {
 		_, c := s.bufChunk(buf)
@@ -173,6 +173,15 @@ func (s *Arena) Ref(buf []byte) int32 {
 	}
 
 	panic("buf not from this arena")
+}
+
+// Equal returns true if both bufs are pointing to the same reference in Arena
+func (s *Arena) Equal(buf []byte, buff[]byte) bool {
+        if s.Owns(buf) && s.Owns(buff) {
+                return s.check(buf, buff)
+        } else {
+                return false
+        }
 }
 
 // AddRef increase the ref count on a buf.  The input buf must be from
@@ -304,6 +313,25 @@ func (s *Arena) LocDecRef(loc Loc) {
 }
 
 // ---------------------------------------------------------------
+
+func (s *Arena) smagic(buf []byte) uint32 {
+        rest := buf[:cap(buf)]
+        footerDistance := len(rest) - slabMemoryFooterLen
+        footer := rest[footerDistance:]
+        return binary.BigEndian.Uint32(footer[8:12])
+
+}
+
+func (s *Arena) check(buf []byte, buff []byte) bool {
+
+	slabMagicBuf := s.smagic(buf)
+	slabMagicBuff := s.smagic(buff)
+        if slabMagicBuf == slabMagicBuff {
+                return true
+        } else {
+                return false
+        }
+}
 
 func (s *Arena) allocChunk(bufLen int) (*slabClass, *chunk) {
 	s.totAllocs++
