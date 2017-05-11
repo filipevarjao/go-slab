@@ -132,15 +132,6 @@ func NewArena(startChunkSize int, slabSize int, growthFactor float64,
 	return s
 }
 
-/*
-func (S *Arena) concDecRef(sc *slabClass, c *chunk) bool {
-	tmp = c
-	for {
-		if c.refs <= 0 {
-		}
-	}
-}*/
-
 func defaultMalloc(size int) []byte {
 	return make([]byte, size)
 }
@@ -177,11 +168,14 @@ func (s *Arena) Ref(buf []byte) int32 {
 
 // Equal returns true if both bufs are pointing to the same reference in Arena
 func (s *Arena) Equal(buf []byte, buff[]byte) bool {
-        if s.Owns(buf) && s.Owns(buff) {
-                return s.check(buf, buff)
-        } else {
-                return false
+	bufSC, bufC := s.bufChunk(buf)
+        if bufSC != nil && bufC != nil {
+                buffSC, buffC := s.bufChunk(buff)
+		if buffSC != nil && buffC != nil {
+			return bufSC == buffSC && bufC == buffC
+		}
         }
+        return false
 }
 
 // AddRef increase the ref count on a buf.  The input buf must be from
@@ -313,25 +307,6 @@ func (s *Arena) LocDecRef(loc Loc) {
 }
 
 // ---------------------------------------------------------------
-
-func (s *Arena) smagic(buf []byte) uint32 {
-        rest := buf[:cap(buf)]
-        footerDistance := len(rest) - slabMemoryFooterLen
-        footer := rest[footerDistance:]
-        return binary.BigEndian.Uint32(footer[8:12])
-
-}
-
-func (s *Arena) check(buf []byte, buff []byte) bool {
-
-	slabMagicBuf := s.smagic(buf)
-	slabMagicBuff := s.smagic(buff)
-        if slabMagicBuf == slabMagicBuff {
-                return true
-        } else {
-                return false
-        }
-}
 
 func (s *Arena) allocChunk(bufLen int) (*slabClass, *chunk) {
 	s.totAllocs++
